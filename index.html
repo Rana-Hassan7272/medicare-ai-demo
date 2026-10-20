@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ava · Medicare Helper — Interactive Sample</title>
+<style>
+  :root{
+    --blue:#1d4ed8; --blue-dark:#1e3a8a; --teal:#0d9488; --teal-dark:#0f766e;
+    --bg:#f1f5f9; --card:#ffffff; --ink:#0f172a; --muted:#64748b;
+    --amber:#f59e0b; --green:#16a34a; --radius:18px;
+    --shadow:0 10px 30px rgba(15,23,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:19px;scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.55;min-height:100vh;
+  }
+  .ribbon{
+    background:var(--blue-dark);color:#e0e7ff;text-align:center;
+    padding:.45rem 1rem;font-size:.8rem;letter-spacing:.03em;
+  }
+  .phone{
+    max-width:430px;margin:1rem auto 3rem;background:var(--bg);
+    min-height:82vh;position:relative;border-radius:24px;overflow:hidden;
+    box-shadow:var(--shadow);border:1px solid #e2e8f0;
+  }
+  @media(max-width:480px){.phone{margin:0 auto 3rem;border-radius:0;min-height:100vh}}
+
+  /* progress */
+  .progress{display:flex;gap:6px;padding:14px 18px 0}
+  .progress span{flex:1;height:6px;border-radius:99px;background:#dbe3ee;transition:background .3s}
+  .progress span.on{background:var(--blue)}
+
+  /* steps */
+  .step{display:none;padding:14px 20px 26px;animation:fadeUp .35s ease}
+  .step.active{display:block}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* ava bubble */
+  .ava-row{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+  .avatar{
+    width:46px;height:46px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(135deg,var(--blue),var(--teal));
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:1.1rem;box-shadow:0 4px 12px rgba(29,78,216,.3);
+  }
+  .bubble{
+    background:var(--card);border-radius:4px 20px 20px 20px;padding:14px 16px;
+    box-shadow:0 3px 10px rgba(15,23,42,.06);font-size:1rem;
+  }
+  .bubble .hey{font-weight:800;color:var(--blue-dark);font-size:1.02rem;display:block;margin-bottom:2px}
+  .bubble .sub{color:var(--muted);font-size:.85rem;margin-top:6px}
+  .speaker{cursor:pointer;border:none;background:#eef2ff;color:var(--blue);border-radius:99px;
+    font-size:.72rem;padding:3px 10px;margin-top:8px;font-weight:700}
+
+  input[type=text],input[type=tel],input[type=email],input[type=number]{
+    width:100%;font:inherit;padding:14px;border:2px solid #cbd5e1;border-radius:14px;background:#fff;
+  }
+  input:focus{outline:none;border-color:var(--blue)}
+
+  .btn{
+    display:block;width:100%;font:inherit;font-weight:800;color:#fff;background:var(--blue);
+    border:none;border-radius:14px;padding:15px;margin-top:16px;cursor:pointer;
+    box-shadow:0 6px 16px rgba(29,78,216,.35);transition:transform .12s;
+  }
+  .btn:active{transform:scale(.98)}
+  .btn.teal{background:var(--teal);box-shadow:0 6px 16px rgba(13,148,136,.35)}
+  .btn.ghost{background:#fff;color:var(--blue-dark);border:2px solid #cbd5e1;box-shadow:none}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+
+  .choices{display:grid;gap:10px;margin-top:12px}
+  .choice{
+    background:#fff;border:2px solid #dbe3ee;border-radius:14px;padding:14px;cursor:pointer;
+    font:inherit;font-weight:600;text-align:center;transition:all .15s;
+  }
+  .choice:hover{border-color:var(--blue);color:var(--blue)}
+  .choice.picked{border-color:var(--blue);background:#eef2ff;color:var(--blue-dark)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{
+    border:1.5px solid #cbd5e1;background:#fff;border-radius:99px;padding:8px 14px;
+    font-size:.82rem;cursor:pointer;font-weight:600;color:#334155;
+  }
+  .chip:hover{border-color:var(--teal);color:var(--teal-dark)}
+  .ai-answer{
+    background:#ecfdf5;border-left:4px solid var(--teal);border-radius:12px;
+    padding:12px 14px;margin-top:12px;font-size:.92rem;display:none;
+  }
+
+  /* timeline */
+  .tl-wrap{background:var(--card);border-radius:var(--radius);padding:18px;margin-top:14px;box-shadow:var(--shadow)}
+  .tl-title{font-size:.78rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+  .tl-name{font-size:1.3rem;font-weight:900;color:var(--blue-dark);margin:2px 0 12px}
+  .tl-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+  .mth{
+    flex:0 0 64px;border-radius:12px;padding:10px 4px;text-align:center;background:#f1f5f9;
+    font-size:.72rem;font-weight:700;color:#64748b;opacity:.55;transform:translateY(8px);
+    transition:all .5s ease;
+  }
+  .mth .d{display:block;font-size:1.05rem}
+  .tl-strip.reveal .mth{opacity:1;transform:none}
+  .mth.iep{background:linear-gradient(160deg,#dbeafe,#cffafe);color:var(--blue-dark)}
+  .mth.bday{background:linear-gradient(160deg,var(--blue),var(--teal));color:#fff;box-shadow:0 6px 14px rgba(13,148,136,.4)}
+  .mth.now{outline:2.5px dashed var(--amber);opacity:1;transform:none}
+  .mth .tag{display:block;font-size:.58rem;font-weight:800;margin-top:3px;letter-spacing:.02em}
+  .tl-warn{
+    margin-top:12px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;
+    padding:10px 12px;font-size:.8rem;color:#92400e;display:none;
+  }
+  .tl-ok{margin-top:12px;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:12px;
+    padding:10px 12px;font-size:.8rem;color:#065f46;display:none}
+
+  /* gauge */
+  .gauge-wrap{text-align:center;margin-top:8px}
+  .gauge-val{font-size:2.6rem;font-weight:900;color:var(--teal-dark)}
+  .gauge-lab{font-size:.8rem;color:var(--muted);font-weight:700}
+  .tips{display:grid;gap:8px;margin-top:14px;text-align:left}
+  .tip{background:#fff;border-radius:12px;padding:10px 12px;font-size:.85rem;display:flex;gap:10px;box-shadow:0 2px 6px rgba(15,23,42,.05)}
+  .tip .ic{font-size:1.1rem}
+
+  /* gate */
+  .locked{
+    position:relative;margin-top:14px;border-radius:var(--radius);overflow:hidden;
+    background:var(--card);padding:18px;box-shadow:var(--shadow);
+  }
+  .locked .blurred{filter:blur(7px);pointer-events:none;user-select:none;opacity:.6}
+  .lock-over{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.55);backdrop-filter:blur(2px);gap:6px;padding:12px;text-align:center;
+  }
+  .lock-over .big{font-size:2.2rem}
+  .lock-over .t{font-weight:900;color:var(--blue-dark);font-size:1.05rem}
+  form.lead{display:grid;gap:10px;margin-top:12px}
+  .consent{font-size:.68rem;color:var(--muted);line-height:1.45;background:#f8fafc;border-radius:10px;padding:10px}
+  .consent label{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+  .consent input{width:auto;margin-top:3px}
+
+  /* cost explorer */
+  .cx{background:var(--card);border-radius:var(--radius);padding:18px;margin-top:14px;box-shadow:var(--shadow)}
+  .slider-row{margin:14px 0}
+  .slider-row label{font-size:.85rem;font-weight:700;display:flex;justify-content:space-between}
+  .slider-row label b{color:var(--blue)}
+  input[type=range]{width:100%;accent-color:var(--blue);height:34px;cursor:pointer}
+  .bars{display:flex;gap:14px;align-items:flex-end;height:170px;margin-top:16px;border-bottom:2px solid #e2e8f0;padding:0 6px}
+  .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+  .bar .col{width:100%;max-width:74px;border-radius:10px 10px 4px 4px;transition:height .35s ease}
+  .bar .amt{font-size:.78rem;font-weight:900}
+  .bar .nm{font-size:.62rem;font-weight:700;color:var(--muted);text-align:center;line-height:1.2}
+  .b1 .col{background:linear-gradient(#93c5fd,#3b82f6)}
+  .b2 .col{background:linear-gradient(#5eead4,#0d9488)}
+  .b3 .col{background:linear-gradient(#fcd34d,#f59e0b)}
+  .cx-note{font-size:.66rem;color:var(--muted);margin-top:10px}
+  .cx-callout{
+    margin-top:12px;background:#eef2ff;border:1.5px solid #c7d2fe;border-radius:12px;
+    padding:10px 12px;font-size:.8rem;color:var(--blue-dark);font-weight:600;
+  }
+
+  /* booking */
+  .days{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .times{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+
+  .done{
+    text-align:center;padding:30px 10px;
+  }
+  .done .emoji{font-size:3.2rem}
+  .done h2{color:var(--teal-dark);margin:10px 0 6px}
+  .done p{color:var(--muted);font-size:.85rem}
+
+  .tpmo{font-size:.6rem;color:var(--muted);padding:14px 20px 20px;line-height:1.5;text-align:center}
+  .teamlink{
+    display:block;text-align:center;font-size:.72rem;color:var(--blue);font-weight:700;
+    text-decoration:underline;cursor:pointer;padding:0 20px 18px;
+  }
+
+  /* team view */
+  .kv{display:flex;justify-content:space-between;font-size:.85rem;padding:8px 0;border-bottom:1px dashed #e2e8f0}
+  .kv b{color:var(--blue-dark)}
+  .badge{display:inline-block;font-size:.62rem;font-weight:900;border-radius:99px;padding:3px 10px;letter-spacing:.04em}
+  .badge.hot{background:#dcfce7;color:#166534}
+  .badge.warm{background:#fef3c7;color:#92400e}
+  .lead-score{font-size:3rem;font-weight:900;color:var(--teal-dark);text-align:center;margin:4px 0}
+</style>
+</head>
+<body>
+
+<div class="ribbon">INTERACTIVE SAMPLE · illustrative data only · not affiliated with Medicare.gov</div>
+
+<div class="phone">
+
+  <div class="progress" id="prog"></div>
+
+  <!-- 1 · WELCOME -->
+  <section class="step active">
+    <div class="ava-row">
+      <div class="avatar">A</div>
+      <div class="bubble">
+        <span class="hey">Hi! I'm Ava, your Medicare helper. 🔊</span>
+        Turning 65 soon? I'll walk you through your options in about 3 minutes —
+        plain English, no pressure.
+        <div><button class="speaker" onclick="speak('Hi, I am Ava, your Medicare helper. Turning sixty five soon? I will walk you through your options in about three minutes, plain English, no pressure.')">🔊 Read aloud</button></div>
+      </div>
+    </div>
+    <button class="btn" onclick="go(2)">Let's get started →</button>
+  </section>
+
+  <!-- 2 · NAME -->
+  <section class="step">
+    <div class="ava-row">
+      <div class="avatar">A</div>
+      <div class="bubble"><span class="hey">First things first — what should I call you?</span></div>
+    </div>
+    <input type="text" id="fname" placeholder="Your first name" oninput="toggleBtn('fname','b2')">
+    <button class="btn" id="b2" disabled onclick="saveName()">Continue →</button>
+  </section>
+
+  <!-- 3 · BIRTH MONTH -->
+  <section class="step">
+    <div class="ava-row">
+      <div class="avatar">A</div>
+      <div class="bubble">
+        <span class="hey">Nice to meet you, <span id="n1">friend</span>! 🎉</span>
+        Which month is your birthday? (That's all I need to find your personal enrollment window.)
+      </div>
+    </div>
+    <div class="choices" id="months"></div>
+  </section>
+
+  <!-- 4 · COVERAGE -->
+  <section class="step">
+    <div class="ava-row">
+      <div class="avatar">A</div>
+      <div class="bubble">
+        <span class="hey">Thanks, <span id="n2">friend</span>!</span>
+        Do you currently have health coverage through an employer or elsewhere?
+      </div>
+    </div>
+    <div class="choices">
+      <div class="choice" data-cov="yes">✅ Yes, I'm covered</div>
+      <div class="choice" data-cov="no">❌ No, I'm not</div>
+      <div class="choice" data-cov="unsure">🤔 Not sure</div>
+    </div>
+    <div class="ai-answer" id="cov-note"></div>
+    <button class="btn" id="b4" disabled onclick="go(5)">Continue →</button>
+  </section>
+
+  <!-- 5 · DOCTOR VISITS -->
+  <section class="step">
+    <div class="ava-row">
+      <div class="avatar">A</div>
+      <div class="bubble">
+        <span class="hey">Got it.</span>
+        In a typical year, how often do you see a doctor?
+        <div class="sub">This helps me personalize your cost picture later.</div>
+      </div>
+    </div>
+    <div class="choices" id="visits">
+      <div class="choice" data-v="3">🌱 Rarely — a few visits</div>
+      <div class="choice" data-v="8">🌿 Sometimes — regular checkups</div>
+      <div class="choice" data-v="16">🌳 Often — several doctors</div>
+    </div>
+    <button class="btn" id="b5" disabled onclick="go(6)">Continue →</button>
+  </section>
+
+  <!-- 6 · ASK ANYTHING -->
+  <section class="step">
+    <div class="ava-row">
+      <div class="avatar">A</div>
+      <div class="bubble">
+        <span class="hey">By the way — you can just ask me anything, <span id="n3">friend</span>. 💬</span>
+        Tap a question to see how I answer:
+      </div>
+    </div>
+    <div class="chips">
+      <div class="chip" onclick="ask(0)">Advantage vs. Supplement?</div>
+      <div class="chip" onclick="ask(1)">Will I keep my doctor?</div>
+      <div class="chip" onclick="ask(2)">What if I'm still working?</div>
+    </div>
+    <div class="ai-answer" id="ai-a"></div>
+    <button class="btn teal" id="b6" disabled onclick="finishQuiz()">Show me my enrollment window →</button>
+  </section>
+
+  <!-- 7 · TIMELINE (WOW) -->
+  <section class="step">
+    <div class="ava-row">
+      <div class="avatar">A</div>
+      <div class="bubble">
+        <span class="hey">Here it is, <span id="n4">friend</span> — your personal Medicare window. 🗓️</span>
+        Generated just now from your answers:
+      </div>
+    </div>
+    <div class="tl-wrap">
+      <div class="tl-title">YOUR INITIAL ENROLLMENT PERIOD</div>
+      <div class="tl-name"><span id="n5">Your</span> 7-month window</div>
+      <div class="tl-strip" id="strip"></div>
+      <div class="tl-ok" id="tl-ok"></div>
+      <div class="tl-warn" id="tl-warn"></div>
+    </div>
+    <button class="btn teal" onclick="go(8)">What's my readiness score? →</button>
+  </section>
+
+  <!-- 8 · READINESS SCORE -->
+  <section class="step">
+    <div class="ava-row">
+      <div class="avatar">A</div>
+      <div class="bubble">
+        <span class="hey">Based on everything you told me…</span>
+      </div>
+    </div>
+    <div class="tl-wrap gauge-wrap">
+      <svg viewBox="0 0 200 110" width="200" height="110" style="margin:0 auto;display:block">
+        <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#e2e8f0" stroke-width="16" stroke-linecap="round"/>
+        <path id="garc" d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#0d9488" stroke-width="16"
+              stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="251"/>
+      </svg>
+      <div class="gauge-val" id="gval">0</div>
+      <div class="gauge-lab">MEDICARE READINESS SCORE</div>
+      <div class="tips">
+        <div class="tip"><span class="ic">✅</span><span>Enrollment window identified — <b id="tip-win">see above</b></span></div>
+        <div class="tip"><span class="ic">📋</span><span>Coverage status mapped — <b id="tip-cov">—</b></span></div>
+        <div class="tip"><span class="ic">🤝</span><span>Best next step: a free 10-minute review with a licensed agent</span></div>
+      </div>
+    </div>
+    <button class="btn teal" onclick="go(9)">See my cost picture →</button>
+  </section>
+
+  <!-- 9 · COST EXPLORER -->
+  <section class="step">
+    <div class="ava-row">
+      <div class="avatar">A</div>
+      <div class="bubble">
+        <span class="hey">One thing worth knowing, <span id="n6">friend</span>…</span>
+        The monthly premium is only part of the story. Move the sliders and watch what happens:
+      </div>
+    </div>
+    <div class="cx">
+      <div class="slider-row">
+        <label>🩺 Doctor visits per year <b><span id="v-out">8</span></b></label>
+        <input type="range" id="s-visits" min="0" max="24" value="8" oninput="calc()">
+      </div>
+      <div class="slider-row">
+        <label>💊 Prescriptions <b><span id="p-out">2</span></b></label>
+        <input type="range" id="s-rx" min="0" max="10" value="2" oninput="calc()">
+      </div>
+      <div class="bars">
+        <div class="bar b1"><span class="amt" id="a1">$—</span><div class="col" id="c1" style="height:40%"></div><span class="nm">Higher premium<br>lower out-of-pocket</span></div>
+        <div class="bar b2"><span class="amt" id="a2">$—</span><div class="col" id="c2" style="height:60%"></div><span class="nm">Balanced<br>(middle ground)</span></div>
+        <div class="bar b3"><span class="amt" id="a3">$—</span><div class="col" id="c3" style="height:80%"></div><span class="nm">Low premium<br>higher out-of-pocket</span></div>
+      </div>
+      <div class="cx-callout" id="cx-call">—</div>
+      <div class="cx-note">Illustrative estimates only — not a quote. Your licensed agent shows real plans and prices for your ZIP.</div>
+    </div>
+    <button class="btn teal" onclick="go(10)">Get my free report →</button>
+  </section>
+
+  <!-- 10 · GATE / LEAD CAPTURE -->
+  <section class="step">
+    <div class="ava-row">
+      <div class="avatar">A</div>
+      <div class="bubble">
+        <span class="hey">🔒 Your Personal Medicare Report is ready!</span>
+        It has your window, your score, and your cost picture. Where should I send it?
+      </div>
+    </div>
+    <div class="locked">
+      <div class="blurred">
+        <div class="tl-wrap" style="margin:0">
+          <div class="tl-title">PERSONAL MEDICARE REPORT</div>
+          <div class="tl-name">Prepared for <span id="n7">you</span></div>
+          <div class="tl-strip"><div class="mth iep">SEP</div><div class="mth iep">OCT</div><div class="mth iep">NOV</div><div class="mth bday">DEC<span class="tag">🎂 65</span></div><div class="mth iep">JAN</div></div>
+          <div class="tips" style="margin-top:10px">
+            <div class="tip"><span class="ic">🎯</span><span>Readiness Score 72/100</span></div>
+            <div class="tip"><span class="ic">💊</span><span>Cost picture attached</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="lock-over">
+        <div class="big">🔒</div>
+        <div class="t">Unlock your report</div>
+      </div>
+    </div>
+    <form class="lead" onsubmit="return submitLead(event)">
+      <input type="text" id="l-name" placeholder="First name" required>
+      <input type="number" id="l-zip" placeholder="ZIP code" min="00501" max="99950" required>
+      <input type="tel" id="l-phone" placeholder="Phone" required>
+      <input type="email" id="l-email" placeholder="Email" required>
+      <div class="consent">
+        <label><input type="checkbox" id="consent" required>
+        <span>Yes, a licensed agent may call, text, or email me about Medicare options. Consent is not a condition of enrollment. Msg &amp; data rates may apply; reply STOP to opt out.</span></label>
+      </div>
+      <button class="btn teal" type="submit">Send my report ✉️</button>
+    </form>
+  </section>
+
+  <!-- 11 · BOOKING -->
+  <section class="step">
+    <div class="ava-row">
+      <div class="avatar">A</div>
+      <div class="bubble">
+        <span class="hey">Almost done, <span id="n8">friend</span>! 🤝</span>
+        Pick a time for your free 10-minute review — a licensed agent will call you.
+      </div>
+    </div>
+    <div class="tl-wrap">
+      <div class="tl-title">CHOOSE A DAY</div>
+      <div class="days" id="days"></div>
+      <div class="tl-title" style="margin-top:14px">CHOOSE A TIME</div>
+      <div class="times" id="times"></div>
+    </div>
+    <button class="btn teal" id="b11" disabled onclick="go(12)">Confirm my appointment →</button>
+  </section>
+
+  <!-- 12 · DONE -->
+  <section class="step">
+    <div class="done">
+      <div class="emoji">✅</div>
+      <h2>You're all set, <span id="n9">friend</span>!</h2>
+      <p>Your report is on its way, and a licensed agent will call you at your chosen time.<br>Keep your phone handy! 📱</p>
+    </div>
+    <div class="tpmo">
+      This is a solicitation of insurance. We do not offer every plan available in your area.
+      Please contact Medicare.gov, 1-800-MEDICARE, or your local State Health Insurance Program (SHIP)
+      to get information on all of your options.
+    </div>
+    <span class="teamlink" onclick="go(13)">👁 What your team sees (demo) →</span>
+  </section>
+
+  <!-- 13 · TEAM VIEW -->
+  <section class="step">
+    <div class="ava-row">
+      <div class="avatar" style="background:linear-gradient(135deg,#334155,#0f172a)">T</div>
+      <div class="bubble">
+        <span class="hey">Agent briefing card (internal)</span>
+        <div class="sub">What lands in your CRM the moment <span id="n10">the visitor</span> books.</div>
+      </div>
+    </div>
+    <div class="tl-wrap">
+      <span class="badge hot">🔥 QUALIFIED · CONSENT ✓</span>
+      <div class="lead-score">72<span style="font-size:1.2rem;color:#94a3b8">/100</span></div>
+      <div class="kv"><span>Name</span><b id="t-name">Robert</b></div>
+      <div class="kv"><span>Birth month</span><b id="t-month">—</b></div>
+      <div class="kv"><span>IEP window</span><b id="t-win">—</b></div>
+      <div class="kv"><span>Coverage now</span><b id="t-cov">—</b></div>
+      <div class="kv"><span>Doctor visits/yr</span><b id="t-vis">8</b></div>
+      <div class="kv"><span>Est. interest</span><b id="t-int">—</b></div>
+      <div class="kv"><span>Consent (TCPA)</span><b>✓ timestamped</b></div>
+      <div class="kv"><span>Appointment</span><b id="t-appt">—</b></div>
+      <div class="kv"><span>Transcript</span><b>✓ full chat attached</b></div>
+    </div>
+    <div class="tpmo">
+      Sample only. In production this pushes to your CRM (GoHighLevel, HubSpot, etc.) with the full
+      transcript + webhook / SMS alert to the agent.
+    </div>
+    <button class="btn ghost" onclick="location.reload()">↺ Replay the demo</button>
+  </section>
+
+</div>
+
+<script>
+/* ---------- state ---------- */
+const S = { name:'', monthIdx:-1, cov:'', vis:8, score:0, day:'', time:'', covText:'' };
+const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const FULL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const TOTAL_STEPS=13;
+
+/* ---------- progress ---------- */
+const prog=document.getElementById('prog');
+for(let i=0;i<10;i++){prog.appendChild(document.createElement('span'));}
+
+/* ---------- nav ---------- */
+function go(n){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.step')[n-1].classList.add('active');
+  const filled=Math.min(10,Math.ceil(n/1.3));
+  document.querySelectorAll('#prog span').forEach((s,i)=>s.classList.toggle('on',i<filled));
+  window.scrollTo({top:0});
+  if(n===7) setTimeout(buildTimeline,120);
+  if(n===8) setTimeout(animateScore,200);
+  if(n===11) buildBooking();
+  if(n===13) fillTeam();
+}
+function toggleBtn(inp,btn){document.getElementById(btn).disabled=!document.getElementById(inp).value.trim();}
+
+/* ---------- name ---------- */
+function saveName(){
+  S.name=document.getElementById('fname').value.trim();
+  S.name=S.name.charAt(0).toUpperCase()+S.name.slice(1);
+  ['n1','n2','n3','n4','n5','n6','n7','n8','n9','n10'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent=S.name;
+  });
+  document.getElementById('n5').textContent=S.name+"'s";
+  go(3);
+}
+
+/* ---------- months ---------- */
+const mgrid=document.getElementById('months');
+MN.forEach((m,i)=>{
+  const d=document.createElement('div'); d.className='choice'; d.textContent=m;
+  d.onclick=()=>{
+    mgrid.querySelectorAll('.choice').forEach(c=>c.classList.remove('picked'));
+    d.classList.add('picked'); S.monthIdx=i;
+    setTimeout(()=>go(4),350);
+  };
+  mgrid.appendChild(d);
+});
+
+/* ---------- coverage ---------- */
+document.querySelectorAll('[data-cov]').forEach(c=>{
+  c.onclick=()=>{
+    document.querySelectorAll('[data-cov]').forEach(x=>x.classList.remove('picked'));
+    c.classList.add('picked'); S.cov=c.dataset.cov;
+    const note=document.getElementById('cov-note');
+    if(S.cov==='unsure'){
+      note.innerHTML='💡 <b>Ava:</b> No problem — most people aren\'t sure. That\'s exactly what our licensed agents confirm on a quick call.';
+      note.style.display='block';
+    } else if(S.cov==='yes'){
+      note.innerHTML='💡 <b>Ava:</b> Good to know! Depending on the plan, you may be able to delay Part B without penalty — your agent will confirm in one minute.';
+      note.style.display='block';
+    } else { note.style.display='none'; }
+    document.getElementById('b4').disabled=false;
+  };
+});
+
+/* ---------- visits ---------- */
+document.querySelectorAll('#visits .choice').forEach(c=>{
+  c.onclick=()=>{
+    document.querySelectorAll('#visits .choice').forEach(x=>x.classList.remove('picked'));
+    c.classList.add('picked'); S.vis=+c.dataset.v; document.getElementById('b5').disabled=false;
+  };
+});
+
+/* ---------- ask anything ---------- */
+const ANS=[
+ '<b>Ava:</b> In plain terms — <b>Original Medicare + Supplement (Medigap)</b> usually lets you see any doctor who accepts Medicare, with predictable costs. <b>Medicare Advantage</b> often has a $0 premium but uses networks. Which fits best depends on your doctors and budget — your agent compares both in your area, free. 👍',
+ '<b>Ava:</b> With Original Medicare, any doctor who accepts Medicare can be seen — no network. Advantage plans do use networks, so checking whether your doctors are in-network is one of the most useful things your free agent call can do. ☎️',
+ '<b>Ava:</b> If you have employer coverage, you may be able to delay Part B without penalty — but the rules depend on the employer\'s size. One quick question your licensed agent will confirm before you decide anything. ✅'
+];
+function ask(i){
+  const el=document.getElementById('ai-a');
+  el.innerHTML=ANS[i]; el.style.display='block';
+  document.getElementById('b6').disabled=false;
+}
+
+/* ---------- timeline ---------- */
+function buildTimeline(){
+  const strip=document.getElementById('strip');
+  strip.innerHTML='';
+  const b=S.monthIdx, now=new Date().getMonth();
+  const cells=[];
+  for(let k=-3;k<=3;k++){
+    const mi=((b+k)%12+12)%12;
+    cells.push({mi,bday:k===0,iep:true});
+  }
+  // padding months around the window for context
+  [cells[0].mi-1, ...cells.map(c=>c.mi), cells[cells.length-1].mi+1].forEach((mi,k)=>{
+    const m=((mi%12)+12)%12;
+    const isPad=(k===0||k===8);
+    const d=document.createElement('div');
+    d.className='mth'+(isPad?'':(m===b?' bday':' iep'))+((m===now&&!isPad)?' now':'');
+    d.innerHTML=MN[m]+(m===b?'<span class="tag">🎂 65</span>':'')+(m===now&&!isPad?'<span class="tag" style="color:#b45309">TODAY</span>':'');
+    strip.appendChild(d);
+  });
+  const start=FULL[((b-3)%12+12)%12], end=FULL[((b+3)%12+12)%12];
+  const diff=((b-now)%12+12)%12;
+  const warn=document.getElementById('tl-warn'), ok=document.getElementById('tl-ok');
+  if(diff===0){
+    ok.innerHTML='✅ <b>This is your birthday month — your window is open right now!</b> Enrolling on time avoids lifetime late penalties.';
+    ok.style.display='block';
+  } else if(diff<4){
+    ok.innerHTML='✅ Your window <b>opens '+FULL[b]+' (in '+diff+' month'+(diff>1?'s':'')+')</b> — perfect timing to prepare now.';
+    ok.style.display='block';
+  } else {
+    warn.innerHTML='⚠️ Heads-up: your window runs <b>'+start+' – '+end+'</b>. Missing it can mean <b>lifetime late-enrollment penalties</b> — one more reason to talk to an agent early.';
+    warn.style.display='block';
+  }
+  setTimeout(()=>strip.classList.add('reveal'),60);
+}
+
+/* ---------- score ---------- */
+function animateScore(){
+  let base=58;
+  if(S.cov==='yes'||S.cov==='no') base+=8; else base+=4;
+  if(S.vis>=8) base+=6;
+  S.score=Math.min(base,86);
+  const arc=document.getElementById('garc'), val=document.getElementById('gval');
+  const target=251-(251*S.score/100); let cur=0;
+  const t0=performance.now();
+  function tick(t){
+    const p=Math.min(1,(t-t0)/900), eased=1-Math.pow(1-p,3);
+    val.textContent=Math.round(S.score*eased);
+    arc.style.strokeDashoffset=251-(251*S.score*eased/100);
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  document.getElementById('tip-win').textContent=startEnd();
+  document.getElementById('tip-cov').textContent=(S.cov==='yes'?'employer / other coverage — delay rules apply':S.cov==='no'?'no current coverage — enrollment is time-sensitive':'unsure — needs quick confirmation');
+}
+function startEnd(){ return FULL[((S.monthIdx-3)%12+12)%12]+' – '+FULL[((S.monthIdx+3)%12+12)%12]; }
+
+/* ---------- cost explorer ---------- */
+function calc(){
+  const v=+document.getElementById('s-visits').value, p=+document.getElementById('s-rx').value;
+  document.getElementById('v-out').textContent=v;
+  document.getElementById('p-out').textContent=p;
+  // illustrative annual totals: premium*12 + visit copays + drug costs, weighted per profile
+  const a1=178*12+v*20+p*12;      // higher premium, low OOP
+  const a2=110*12+v*35+p*26;      // balanced
+  const a3=38*12+v*60+p*44;       // low premium, high OOP
+  const arr=[[a1,'a1','c1'],[a2,'a2','c2'],[a3,'a3','c3']];
+  const mx=Math.max(a1,a2,a3);
+  arr.forEach(([v2,ai,ci])=>{
+    document.getElementById(ai).textContent='$'+v2.toLocaleString();
+    document.getElementById(ci).style.height=Math.max(14,(v2/mx*100))+'%';
+  });
+  const diff=a3-a1;
+  const call=document.getElementById('cx-call');
+  if(diff>0){
+    call.innerHTML='💡 With your usage, the "cheap premium" option could cost <b>$'+diff.toLocaleString()+' more per year</b>. That\'s why picking on premium alone is risky — your agent compares the real numbers.';
+  } else {
+    call.innerHTML='💡 With your usage, higher-premium plans can actually save money — your agent compares the real numbers for your ZIP.';
+  }
+}
+
+/* ---------- lead ---------- */
+function submitLead(e){
+  e.preventDefault();
+  S.day=S.day||'Thu'; S.time=S.time||'10:00 AM';
+  go(11);
+  return false;
+}
+
+/* ---------- booking ---------- */
+function buildBooking(){
+  const days=document.getElementById('days'); days.innerHTML='';
+  const now=new Date(); const names=[];
+  for(let i=1;i<=6;i++){
+    const d=new Date(now.getTime()+i*864e5);
+    names.push(d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}));
+  }
+  names.forEach(n=>{
+    const el=document.createElement('div'); el.className='choice'; el.textContent=n;
+    el.onclick=()=>{days.querySelectorAll('.choice').forEach(c=>c.classList.remove('picked'));el.classList.add('picked');S.day=n;checkBook();};
+    days.appendChild(el);
+  });
+  const times=document.getElementById('times'); times.innerHTML='';
+  ['9:00 AM','10:00 AM','11:00 AM','1:00 PM','2:00 PM','4:00 PM'].forEach(t=>{
+    const el=document.createElement('div'); el.className='choice'; el.textContent=t;
+    el.onclick=()=>{times.querySelectorAll('.choice').forEach(c=>c.classList.remove('picked'));el.classList.add('picked');S.time=t;checkBook();};
+    times.appendChild(el);
+  });
+}
+function checkBook(){document.getElementById('b11').disabled=!(S.day&&S.time);}
+
+/* ---------- team view ---------- */
+function fillTeam(){
+  document.getElementById('t-name').textContent=S.name||'Robert';
+  document.getElementById('t-month').textContent=S.monthIdx>=0?FULL[S.monthIdx]:'March';
+  document.getElementById('t-win').textContent=startEnd();
+  document.getElementById('t-cov').textContent=S.cov==='yes'?'Employer/other':S.cov==='no'?'None':'Unsure';
+  document.getElementById('t-vis').textContent=S.vis;
+  document.getElementById('t-int').textContent=S.vis>=8?'Plan comparison + networks':'Coverage basics + timing';
+  document.getElementById('t-appt').textContent=(S.day||'Thu')+' · '+(S.time||'10:00 AM');
+}
+
+/* ---------- a11y: speech ---------- */
+function speak(t){try{const u=new SpeechSynthesisUtterance(t);u.rate=.92;speechSynthesis.speak(u);}catch(e){}}
+
+function finishQuiz(){go(7);}
+calc();
+</script>
+</body>
+</html>
