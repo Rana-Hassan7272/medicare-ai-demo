@@ -181,6 +181,28 @@
   .badge.hot{background:#dcfce7;color:#166534}
   .badge.warm{background:#fef3c7;color:#92400e}
   .lead-score{font-size:3rem;font-weight:900;color:var(--teal-dark);text-align:center;margin:4px 0}
+
+  /* voice + phases */
+  .vrow{display:flex;justify-content:flex-end;padding:10px 18px 0}
+  .vtoggle{border:none;background:#eef2ff;color:var(--blue-dark);font-weight:800;font-size:.7rem;
+    border-radius:99px;padding:5px 12px;cursor:pointer}
+  .vtoggle.off{background:#f1f5f9;color:var(--muted)}
+  .phase{display:inline-block;font-size:.6rem;font-weight:900;background:#eef2ff;color:var(--blue);
+    border-radius:99px;padding:3px 10px;letter-spacing:.06em;margin-bottom:6px}
+  .inrow{display:flex;gap:8px;align-items:center}
+  .inrow input{flex:1}
+  .mic{width:52px;height:52px;flex-shrink:0;border-radius:50%;border:none;background:#ecfdf5;color:var(--teal-dark);
+    font-size:1.2rem;cursor:pointer;box-shadow:0 3px 8px rgba(13,148,136,.25)}
+  .mic.say{width:auto;height:auto;border-radius:99px;padding:8px 14px;font-size:.75rem;font-weight:800}
+  .mic.rec{animation:pulse 1s infinite;background:#fef3c7;color:#92400e}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+  .mic-note{font-size:.68rem;color:var(--muted);margin-top:6px;text-align:center}
+  .chatlog{display:grid;gap:10px;margin-top:12px;max-height:300px;overflow-y:auto;padding-right:4px}
+  .qa-you{background:var(--blue);color:#fff;border-radius:16px 16px 4px 16px;padding:10px 14px;font-size:.85rem;justify-self:end;max-width:85%}
+  .qa-ava{background:#fff;border-radius:4px 16px 16px 16px;padding:10px 14px;font-size:.88rem;box-shadow:0 2px 8px rgba(15,23,42,.06);max-width:92%}
+  .askrow{display:flex;gap:8px;margin-top:12px}
+  .askrow input{flex:1;padding:12px;border:2px solid #cbd5e1;border-radius:14px;font:inherit;font-size:.95rem}
+  .askrow .mic{width:48px;height:48px;font-size:1rem}
 </style>
 </head>
 <body>
@@ -190,9 +212,11 @@
 <div class="phone">
 
   <div class="progress" id="prog"></div>
+  <div class="vrow"><button class="vtoggle" id="vtoggle" onclick="toggleVoice()">🔊 Voice: ON</button></div>
 
   <!-- 1 · WELCOME -->
   <section class="step active">
+    <div class="phase">PHASE 1 · VOICE GUIDANCE</div>
     <div class="ava-row">
       <div class="avatar">A</div>
       <div class="bubble">
@@ -211,7 +235,11 @@
       <div class="avatar">A</div>
       <div class="bubble"><span class="hey">First things first — what should I call you?</span></div>
     </div>
-    <input type="text" id="fname" placeholder="Your first name" oninput="toggleBtn('fname','b2')">
+    <div class="inrow">
+      <input type="text" id="fname" placeholder="Your first name" oninput="toggleBtn('fname','b2')">
+      <button class="mic" onclick="listen(2,'fname')" title="Say your name">🎤</button>
+    </div>
+    <div class="mic-note">Tap the mic and just say it — Ava listens.</div>
     <button class="btn" id="b2" disabled onclick="saveName()">Continue →</button>
   </section>
 
@@ -224,6 +252,8 @@
         Which month is your birthday? (That's all I need to find your personal enrollment window.)
       </div>
     </div>
+    <div style="text-align:center"><button class="mic say" onclick="listen(3,null,this)">🎤 Or just say your birth month</button></div>
+    <div class="mic-note" id="mn3">Works best in Chrome — allow the microphone if asked.</div>
     <div class="choices" id="months"></div>
   </section>
 
@@ -236,6 +266,8 @@
         Do you currently have health coverage through an employer or elsewhere?
       </div>
     </div>
+    <div style="text-align:center"><button class="mic say" onclick="listen(4,null,this)">🎤 Or say: "yes", "no", or "not sure"</button></div>
+    <div class="mic-note" id="mn4"></div>
     <div class="choices">
       <div class="choice" data-cov="yes">✅ Yes, I'm covered</div>
       <div class="choice" data-cov="no">❌ No, I'm not</div>
@@ -255,6 +287,8 @@
         <div class="sub">This helps me personalize your cost picture later.</div>
       </div>
     </div>
+    <div style="text-align:center"><button class="mic say" onclick="listen(5,null,this)">🎤 Or say: "rarely", "sometimes", or "often"</button></div>
+    <div class="mic-note" id="mn5"></div>
     <div class="choices" id="visits">
       <div class="choice" data-v="3">🌱 Rarely — a few visits</div>
       <div class="choice" data-v="8">🌿 Sometimes — regular checkups</div>
@@ -263,26 +297,34 @@
     <button class="btn" id="b5" disabled onclick="go(6)">Continue →</button>
   </section>
 
-  <!-- 6 · ASK ANYTHING -->
+  <!-- 6 · ASK ANYTHING (free chat) -->
   <section class="step">
+    <div class="phase">PHASE 2 · ASK ANYTHING — TYPE OR SPEAK</div>
     <div class="ava-row">
       <div class="avatar">A</div>
       <div class="bubble">
-        <span class="hey">By the way — you can just ask me anything, <span id="n3">friend</span>. 💬</span>
-        Tap a question to see how I answer:
+        <span class="hey">Now ask me anything, <span id="n3">friend</span> — type it or tap the mic. 💬</span>
+        Try one of these, or your own question:
       </div>
     </div>
     <div class="chips">
-      <div class="chip" onclick="ask(0)">Advantage vs. Supplement?</div>
-      <div class="chip" onclick="ask(1)">Will I keep my doctor?</div>
-      <div class="chip" onclick="ask(2)">What if I'm still working?</div>
+      <div class="chip" onclick="askFree('What is the difference between Medicare Advantage and a Supplement?')">Advantage vs. Supplement?</div>
+      <div class="chip" onclick="askFree('Will I keep my doctor?')">Will I keep my doctor?</div>
+      <div class="chip" onclick="askFree('What happens if I miss my enrollment deadline?')">What if I miss my deadline?</div>
+      <div class="chip" onclick="askFree('How much does Medicare cost?')">How much does it cost?</div>
     </div>
-    <div class="ai-answer" id="ai-a"></div>
-    <button class="btn teal" id="b6" disabled onclick="finishQuiz()">Show me my enrollment window →</button>
+    <div class="askrow">
+      <input type="text" id="freeq" placeholder="Type any Medicare question…" onkeydown="if(event.key==='Enter')submitFree()">
+      <button class="mic" onclick="listen(6,'freeq',this)" title="Speak your question">🎤</button>
+    </div>
+    <div class="mic-note" id="mn6">The production version answers anything — this sample knows the most common questions.</div>
+    <div class="chatlog" id="chatlog"></div>
+    <button class="btn teal" onclick="finishQuiz()">Show me my enrollment window →</button>
   </section>
 
   <!-- 7 · TIMELINE (WOW) -->
   <section class="step">
+    <div class="phase">PHASE 3 · PERSONALIZED VISUALS</div>
     <div class="ava-row">
       <div class="avatar">A</div>
       <div class="bubble">
@@ -475,6 +517,7 @@ function go(n){
   const filled=Math.min(10,Math.ceil(n/1.3));
   document.querySelectorAll('#prog span').forEach((s,i)=>s.classList.toggle('on',i<filled));
   window.scrollTo({top:0});
+  say(STEP_SPEECH[n]||'');
   if(n===7) setTimeout(buildTimeline,120);
   if(n===8) setTimeout(animateScore,200);
   if(n===11) buildBooking();
@@ -530,17 +573,128 @@ document.querySelectorAll('#visits .choice').forEach(c=>{
   };
 });
 
-/* ---------- ask anything ---------- */
-const ANS=[
- '<b>Ava:</b> In plain terms — <b>Original Medicare + Supplement (Medigap)</b> usually lets you see any doctor who accepts Medicare, with predictable costs. <b>Medicare Advantage</b> often has a $0 premium but uses networks. Which fits best depends on your doctors and budget — your agent compares both in your area, free. 👍',
- '<b>Ava:</b> With Original Medicare, any doctor who accepts Medicare can be seen — no network. Advantage plans do use networks, so checking whether your doctors are in-network is one of the most useful things your free agent call can do. ☎️',
- '<b>Ava:</b> If you have employer coverage, you may be able to delay Part B without penalty — but the rules depend on the employer\'s size. One quick question your licensed agent will confirm before you decide anything. ✅'
+/* ---------- ask anything (FAQ brain) ---------- */
+const FAQ=[
+ ['advantage,supplement,medigap,part c','Great question. Original Medicare plus a Supplement (Medigap) usually lets you see any doctor who accepts Medicare, with predictable costs but a monthly premium. Medicare Advantage often has a $0 premium but uses doctor networks. Which fits best depends on your doctors and budget — your licensed agent compares both in your area, free.'],
+ ['doctor,physician,network,keep my','With Original Medicare, you can see any doctor who accepts Medicare — no network. Advantage plans do use networks, so checking that your doctors are in-network is one of the most useful things your free agent call can do.'],
+ ['working,employer,job,delay,still work','If you have employer coverage, you may be able to delay Part B without penalty — but it depends on the employer\'s size. That\'s exactly the kind of rule your licensed agent confirms in one minute, before you decide anything.'],
+ ['penalty,penalties,late,miss,deadline','If you miss your 7-month Initial Enrollment Period, Part B can carry a lifetime late-enrollment penalty — 10% added to your premium for every 12 months you delay. That\'s why knowing your window early matters so much.'],
+ ['part d,prescription,drug,medication,pharmacy,pills','Part D covers prescriptions. It\'s optional, but carries its own late penalty if you go 63+ days without credible coverage after becoming eligible. Prices vary a lot by ZIP and by your exact medications — your agent can run a personalized comparison.'],
+ ['cost,price,premium,how much,expensive,pay,monthly,free','Costs vary by where you live and how you use care. Some people pay $0 premiums; others prefer higher premiums with lower out-of-pocket costs. The Cost Explorer screen shows why picking on premium alone can be misleading — and your agent shows real prices for your ZIP.'],
+ ['when,enroll,deadline,window,iep,seven,sign up,when can i','Your Initial Enrollment Period is 7 months long: your birth month, plus 3 months before and 3 after. Ava built yours on the next screen from your answers — enrolling inside it avoids lifetime penalties.'],
+ ['medicaid','Medicare is for people 65+ (or with certain disabilities) and comes from the federal government. Medicaid is a separate state program based on income. Some people qualify for both — if you might, mention it on your free agent call.'],
+ ['vision,dental,hearing,teeth,glasses,contacts','Original Medicare generally doesn\'t cover routine vision, dental, or hearing. Many Medicare Advantage plans bundle these as extras — one more thing your agent can compare for you.'],
+ ['social security,ssa','If you\'re already getting Social Security, you\'re usually enrolled in Part A and B automatically around your 65th birthday. If not, you enroll through Social Security. Your agent confirms which situation applies to you.'],
+ ['what is medicare,parts,part a,part b,basics,explained','Simple version: Part A covers hospital stays, Part B covers doctor visits, Part D covers prescriptions, and Medicare Advantage (Part C) bundles them through private plans. A Supplement (Medigap) fills gaps in Original Medicare. Think of it like a puzzle — your agent helps you pick the pieces that fit your life.'],
+ ['change,switch,cancel,different plan','Yes — you can change plans during the Annual Enrollment Period, October 15 to December 7, every year. You\'re never locked in forever; start with what fits now and adjust later.'],
+ ['travel,abroad,vacation,snowbird,another state','Original Medicare generally doesn\'t cover care outside the U.S., though some Advantage plans and Supplements add travel benefits. If you snowbird or travel often, tell your agent — it changes which plans make sense.'],
+ ['score,ready,readiness','Your Readiness Score summarizes how prepared you are based on your answers — window identified, coverage mapped, next steps clear. Anything under 100 is normal; the free agent call covers the rest.'],
+ ['human,person,agent,call,talk to someone,speak to','Of course — that\'s the whole point! The next screens let you book a free 10-minute call with a licensed agent who already knows your situation before dialing.']
 ];
-function ask(i){
-  const el=document.getElementById('ai-a');
-  el.innerHTML=ANS[i]; el.style.display='block';
-  document.getElementById('b6').disabled=false;
+const FALLBACK='Good question — I want you to get an answer that fits your specific situation, so bring that one to your free agent call (the next screens book it). Meanwhile, ask me about costs, doctors, enrollment windows, prescriptions, or Advantage vs. Supplements.';
+function answer(q){
+  const lc=q.toLowerCase(); let best=null,score=0;
+  FAQ.forEach(([kw,a])=>{
+    let s=kw.split(',').filter(k=>lc.includes(k.trim())).length;
+    if(s>score){score=s;best=a;}
+  });
+  return best||FALLBACK;
 }
+function askFree(q){
+  q=(q||'').trim(); if(!q) return;
+  const log=document.getElementById('chatlog');
+  const you=document.createElement('div'); you.className='qa-you'; you.textContent=q;
+  log.appendChild(you); log.scrollTop=log.scrollHeight;
+  setTimeout(()=>{
+    const a=answer(q);
+    const av=document.createElement('div'); av.className='qa-ava'; av.innerHTML='<b>Ava:</b> '+a;
+    log.appendChild(av); log.scrollTop=log.scrollHeight; say(a);
+  },650);
+}
+function submitFree(){
+  const inp=document.getElementById('freeq'); askFree(inp.value); inp.value='';
+}
+
+/* ---------- voice: guidance (TTS) ---------- */
+let voiceOn=true;
+const STEP_SPEECH={
+ 1:"Hi, I'm Ava, your Medicare helper. Turning sixty five soon? I'll walk you through your options in about three minutes — plain English, no pressure.",
+ 2:"First things first — what should I call you?",
+ 3:"Nice to meet you. Which month is your birthday? That's all I need to find your personal enrollment window.",
+ 4:"Do you currently have health coverage through an employer or elsewhere?",
+ 5:"In a typical year, how often do you see a doctor?",
+ 6:"Now ask me anything. Type your question, or tap the microphone and just say it.",
+ 7:"Here it is — your personal Medicare window, generated from your answers.",
+ 8:"Based on everything you told me, here is your readiness score.",
+ 9:"One thing worth knowing: the monthly premium is only part of the story. Move the sliders to see what I mean.",
+ 10:"Your personal Medicare report is ready. Where should I send it?",
+ 11:"Pick a time for your free ten minute review. A licensed agent will call you.",
+ 12:"You're all set! Your report is on its way.",
+ 13:"And this is what your team sees: a qualified lead, with score, consent, and appointment."
+};
+function say(t){
+  if(!voiceOn) return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(t.replace(/[🔊💬🗓️✅❌🤔🌱🌿🌳🔒✉️📱🎂👆]/g,''));
+    u.rate=.95; u.pitch=1; speechSynthesis.speak(u);
+  }catch(e){}
+}
+function toggleVoice(){
+  voiceOn=!voiceOn;
+  const b=document.getElementById('vtoggle');
+  b.textContent=voiceOn?'🔊 Voice: ON':'🔇 Voice: OFF';
+  b.classList.toggle('off',!voiceOn);
+  if(!voiceOn){ try{speechSynthesis.cancel();}catch(e){} }
+}
+
+/* ---------- voice: input (mic) ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function listen(step,target,btn){
+  const note=document.getElementById('mn'+step);
+  if(!SR){ if(note) note.textContent='Voice input works best in Chrome — you can type instead.'; return; }
+  try{
+    document.querySelectorAll('.mic.rec').forEach(b=>b.classList.remove('rec'));
+    const r=new SR(); r.lang='en-US'; r.interimResults=false; r.maxAlternatives=1;
+    if(btn) btn.classList.add('rec');
+    if(note) note.textContent='🎙️ Listening…';
+    r.onresult=e=>{ const t=e.results[0][0].transcript.trim(); if(t) routeVoice(step,target,t); };
+    r.onerror=()=>{ if(note) note.textContent='Couldn\'t hear that — try again, or type instead.'; };
+    r.onend=()=>{ if(btn) btn.classList.remove('rec'); };
+    r.start();
+  }catch(e){ if(note) note.textContent='Voice input not available here — please type.'; }
+}
+function routeVoice(step,target,t){
+  const lc=' '+t.toLowerCase()+' ';
+  if(step===2){
+    const w=t.split(/[\s,]+/)[0].replace(/[^a-zA-Z']/g,'');
+    if(w){ document.getElementById('fname').value=w.charAt(0).toUpperCase()+w.slice(1); toggleBtn('fname','b2'); }
+  }
+  if(step===3){
+    const FULLS=['january','february','march','april','may','june','july','august','september','october','november','december'];
+    const idx=FULLS.findIndex(m=>lc.includes(m));
+    if(idx>=0){ const c=document.querySelectorAll('#months .choice')[idx]; if(c) c.click(); return; }
+    mn(3,'Didn\'t catch the month — just tap it instead.');
+  }
+  if(step===4){
+    let c=null;
+    if(lc.includes('not sure')||lc.includes('unsure')||lc.includes("don't know")) c='unsure';
+    else if(lc.includes('yes')||lc.includes('yeah')||lc.includes('yep')||lc.includes('i do')||lc.includes('have')) c='yes';
+    else if(lc.includes('nope')||lc.includes("don't")||lc.trim()===' no '||lc.includes('not covered')||lc.includes('no insurance')) c='no';
+    if(c){ document.querySelector('[data-cov="'+c+'"]').click(); return; }
+    mn(4,'Say "yes", "no", or "not sure".');
+  }
+  if(step===5){
+    let el=null;
+    if(lc.includes('rare')||lc.includes('hardly')||lc.includes('never')) el=document.querySelector('#visits .choice[data-v="3"]');
+    else if(lc.includes('sometimes')||lc.includes('regular')||lc.includes('normal')||lc.includes('average')) el=document.querySelector('#visits .choice[data-v="8"]');
+    else if(lc.includes('often')||lc.includes('a lot')||lc.includes('many')||lc.includes('several')) el=document.querySelector('#visits .choice[data-v="16"]');
+    if(el){ el.click(); return; }
+    mn(5,'Say "rarely", "sometimes", or "often".');
+  }
+  if(step===6){ document.getElementById('freeq').value=t; submitFree(); }
+}
+function mn(step,msg){ const n=document.getElementById('mn'+step); if(n) n.textContent=msg; }
 
 /* ---------- timeline ---------- */
 function buildTimeline(){
@@ -575,6 +729,7 @@ function buildTimeline(){
     warn.style.display='block';
   }
   setTimeout(()=>strip.classList.add('reveal'),60);
+  say('Your personal enrollment window runs '+start+' through '+end+'. Your birthday month is '+FULL[b]+'.');
 }
 
 /* ---------- score ---------- */
@@ -590,7 +745,7 @@ function animateScore(){
     const p=Math.min(1,(t-t0)/900), eased=1-Math.pow(1-p,3);
     val.textContent=Math.round(S.score*eased);
     arc.style.strokeDashoffset=251-(251*S.score*eased/100);
-    if(p<1) requestAnimationFrame(tick);
+    if(p<1) requestAnimationFrame(tick); else say('Your readiness score is '+S.score+' out of one hundred.');
   }
   requestAnimationFrame(tick);
   document.getElementById('tip-win').textContent=startEnd();
@@ -668,6 +823,7 @@ function speak(t){try{const u=new SpeechSynthesisUtterance(t);u.rate=.92;speechS
 
 function finishQuiz(){go(7);}
 calc();
+setTimeout(()=>say(STEP_SPEECH[1]),400);
 </script>
 </body>
 </html>
