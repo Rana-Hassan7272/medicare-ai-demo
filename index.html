@@ -241,7 +241,11 @@ form.lead{display:grid;gap:10px;margin-top:12px}
 
   <div class="topline">
     <span class="brand">🛡 Ava · Medicare Helper</span>
-    <button class="vtoggle" id="vtoggle" onclick="toggleVoice()">🔊 Voice: ON</button>
+    <span style="display:flex;gap:6px;align-items:center">
+      <a class="vtoggle" href="tel:+18005550123" title="Prefer a person? Call us" style="text-decoration:none">📞</a>
+      <button class="vtoggle" id="fsize" onclick="biggerText()">A⁺ Bigger</button>
+      <button class="vtoggle" id="vtoggle" onclick="toggleVoice()">🔊 Voice: ON</button>
+    </span>
   </div>
   <div class="bar"><i id="bar"></i></div>
 
@@ -574,17 +578,17 @@ const TOTAL=14;
 const AVA={
  1:"Hi, I'm Ava, your Medicare helper. Turning sixty five soon? I'll walk you through your options in about three minutes — plain English, no pressure. Tap the button and let's go.",
  2:"First things first — what should I call you?",
- 3:"Wonderful. Which month is your birthday? That's all I need to find your personal enrollment window.",
- 4:"And do you currently have health coverage through an employer or elsewhere?",
- 5:"In a typical year, how often do you see a doctor? This helps me personalize your cost picture.",
- 6:"Now — ask me anything. Type your question, or tap the little microphone and just say it. I'm listening.",
- 7:"Here it is. Your personal Medicare window, generated from your answers.",
- 8:"Based on everything you told me, here is your readiness score.",
- 9:"One thing worth knowing before your report: the monthly premium is only part of the story.",
- 10:"Move the sliders and watch what happens. This is why picking on price alone can be risky.",
- 11:"Your personal report is ready — with your window, your score, and your cost picture. Where should I send it?",
- 12:"Pick a day and time that suits you. A licensed agent will call you — free, no obligation.",
- 13:"You're all set! Your report is on its way, and your agent call is booked. Keep your phone handy.",
+ 3:"Wonderful, {name}. Which month is your birthday? That's all I need to find your personal enrollment window.",
+ 4:"And {name}, do you currently have health coverage through an employer or elsewhere?",
+ 5:"In a typical year, how often do you see a doctor, {name}? This helps me personalize your cost picture.",
+ 6:"Now — ask me anything, {name}. Type your question, or tap the little microphone and just say it. I'm listening.",
+ 7:"Here it is, {name}. Your personal Medicare window, generated from your answers.",
+ 8:"Based on everything you told me, {name}, here is your readiness score.",
+ 9:"One thing worth knowing before your report, {name}: the monthly premium is only part of the story.",
+ 10:"Move the sliders and watch what happens, {name}. This is why picking on price alone can be risky.",
+ 11:"{name}, your personal report is ready — with your window, your score, and your cost picture. Where should I send it?",
+ 12:"Pick a day and time that suits you, {name}. A licensed agent will call you — free, no obligation.",
+ 13:"You're all set, {name}! Your report is on its way, and your agent call is booked. Keep your phone handy.",
  14:"And this is what your team sees: a qualified lead, with score, consent, appointment, and the full conversation."
 };
 
@@ -669,12 +673,22 @@ function speakLine(id,text){
     let i=0;clearInterval(typeTimer);
     typeTimer=setInterval(()=>{
       txt.textContent=text.slice(0,++i);
-      if(i>=text.length){clearInterval(typeTimer);if(rp)rp.style.display='inline-block';}
+      if(i>=text.length){clearInterval(typeTimer);ensureReplay(id);}
     },22);
     say(text);
   },650);
 }
-function replay(id){const t=AVA[id];curLineId=id;voiceOn=true;syncToggle();say(t);}
+function replay(id){const t=AVA[id]?AVA[id].replace('{name}',S.name):null;curLineId=id;voiceOn=true;syncToggle();if(t)say(t);}
+function ensureReplay(id){
+  const t=document.getElementById('txt'+id);if(!t)return;
+  let b=document.getElementById('rp'+id);
+  if(!b){
+    b=document.createElement('button');b.className='replay';b.id='rp'+id;
+    b.textContent='🔊 Hear it again';b.onclick=()=>replay(id);
+    t.parentElement.appendChild(b);
+  }
+  b.style.display='inline-block';
+}
 function toggleVoice(){
   voiceOn=!voiceOn;localStorage.setItem('avaVoice',voiceOn?'on':'off');
   if(!voiceOn){try{speechSynthesis.cancel();}catch(e){} if(clipAudio){try{clipAudio.pause();}catch(e){}} mouthStop();}
@@ -686,6 +700,14 @@ function syncToggle(){
   b.classList.toggle('off',!voiceOn);
 }
 syncToggle();
+let big=localStorage.getItem('avaBig')==='1';
+function applyText(){
+  document.documentElement.style.fontSize=big?'21.5px':'18px';
+  const b=document.getElementById('fsize');
+  if(b)b.textContent=big?'A⁻ Smaller':'A⁺ Bigger';
+}
+function biggerText(){big=!big;localStorage.setItem('avaBig',big?'1':'0');applyText();}
+applyText();
 
 /* ================= NAV ================= */
 let curStep=1;
@@ -698,7 +720,11 @@ function go(n){
   document.getElementById('bar').style.width=Math.max(7,Math.round(n/TOTAL*100))+'%';
   window.scrollTo({top:0,behavior:'smooth'});
   curStep=n;
-  if(AVA[n])speakLine(n,AVA[n].replace('{name}',S.name));
+  let line=AVA[n]?AVA[n].replace('{name}',S.name):null;
+  if(n===7&&S.monthIdx>=0&&((S.monthIdx-new Date().getMonth()+12)%12===0)){
+    line='Happy birthday month, '+S.name+'! Here is your personal Medicare window, generated from your answers.';
+  }
+  if(line)speakLine(n,line);
   if(n===7)setTimeout(buildTimeline,500);
   if(n===8)setTimeout(animateScore,600);
   if(n===12)buildBooking();
