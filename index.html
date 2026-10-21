@@ -650,13 +650,14 @@ function tts(text,onDone){
     const u=new SpeechSynthesisUtterance(c.trim());
     if(pickedVoice)u.voice=pickedVoice;
     u.rate=.94;u.pitch=1.02;u.lang='en-US';
-    if(i===0)u.onstart=mouthStart;
+    if(i===0)u.onstart=()=>{mouthStart();if(curLineId===1){welcomeSpoken=true;const r=document.getElementById('rp1');if(r)r.textContent='🔊 Hear it again';}};
     u.onend=()=>{done++;if(done===chunks.length){mouthStop();onDone&&onDone();}};
     u.onerror=()=>{done++;if(done===chunks.length){mouthStop();onDone&&onDone();}};
     speechSynthesis.speak(u);
   });
 }
 let curLineId=null;
+let welcomeSpoken=false;
 function speakLine(id,text){
   curLineId=id;
   const rp=document.getElementById('rp'+id);if(rp)rp.style.display='none';
@@ -952,6 +953,22 @@ document.querySelectorAll('.face').forEach(sv=>{
   }
 });
 setTimeout(()=>speakLine(1,AVA[1]),450);
+setTimeout(()=>{
+  const rp1=document.getElementById('rp1');
+  if(!welcomeSpoken&&!speechSynthesis.speaking&&curStep===1&&voiceOn&&rp1){
+    rp1.textContent='🔊 Tap to hear Ava';
+    rp1.style.display='inline-block';
+  }
+},2600);
+document.addEventListener('pointerdown',function once(e){
+  if(e.target.closest&&e.target.closest('.replay'))return;
+  setTimeout(()=>{
+    if(!welcomeSpoken&&curStep===1&&voiceOn&&!speechSynthesis.speaking){
+      speakLine(1,AVA[1]);
+    }
+  },60);
+  document.removeEventListener('pointerdown',once);
+});
 </script>
 </body>
 </html>
